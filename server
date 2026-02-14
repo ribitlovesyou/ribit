@@ -1,0 +1,162 @@
+"""
+Ribit Web UI Server
+Provides a web interface for onboarding, configuration, and monitoring.
+"""
+
+import asyncio
+import json
+import logging
+import os
+import sys
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+try:
+    from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+    from fastapi.responses import FileResponse, HTMLResponse
+    from fastapi.staticfiles import StaticFiles
+    import uvicorn
+
+    HAS_SERVER_DEPS = True
+except ImportError:
+    HAS_SERVER_DEPS = False
+    logger.warning("FastAPI/uvicorn not installed — web UI unavailable")
+
+# Add parent to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from framework.main import DigitalBeing
+
+app = FastAPI(title="Ribit Digital Being", version="0.1.0")
+
+# Global being instance
+being: DigitalBeing = None
+connected_clients: list[WebSocket] = []
+
+
+@app.on_event("startup")
+async def startup():
+    global being
+    being = DigitalBeing()
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Serve the main UI."""
+    static_dir = Path(__file__).parent / "static"
+    index_file = static_dir / "index.html"
+    if index_file.exists():
+        return HTMLResponse(content=index_file.read_text())
+    return HTMLResponse(content="<h1>🐸 Ribit Digital Being</h1><p>Static files not found.</p>")
+
+
+@app.get("/api/status")
+async def get_status():
+    """Get the being's current status."""
+    if being:
+        return being.get_status()
+    return {"error": "Being not initialized"}
+
+
+@app.post("/api/start")
+async def start_being():
+    """Start the being's main loop."""
+    if not being:
+        return {"error": "Being not initialized"}
+
+    if being.running:
+        return {"status": "already running"}
+
+    if await being.initialize():
+        asyncio.create_task(being.run_loop())
+        return {"status": "started"}
+    return {"error": "Initialization failed"}
+
+
+@app.post("/api/stop")
+async def stop_being():
+    """Stop the being's main loop."""
+    if being and being.running:
+        await being.stop()
+        return {"status": "stopped"}
+    return {"status": "not running"}
+
+
+@app.post("/api/pause")
+async def pause_being():
+    """Pause/resume the being."""
+    if not being:
+        return {"error": "Being not initialized"}
+
+    if being.paused:
+        being.resume()
+        return {"status": "resumed"}
+    else:
+        being.pause()
+        return {"status": "paused"}
+
+
+@app.get("/api/config/character")
+async def get_character_config():
+    """Get character configuration."""
+    config_path = Path("config/character_config.json")
+    if config_path.exists():
+        return json.loads(config_path.read_text())
+    return {"error": "No character config found"}
+
+
+@app.post("/api/config/character")
+async def save_character_config(config: dict):
+    """Save character configuration."""
+    config_dir = Path("config")
+    config_dir.mkdir(exist_ok=True)
+    config_path = config_dir / "character_config.json"
+    config_path.write_text(json.dumps(config, indent=2))
+    return {"status": "saved"}
+
+
+@app.get("/api/config/skills")
+async def get_skills_config():
+    """Get skills configuration."""
+    config_path = Path("config/skills_config.json")
+    if config_path.exists():
+        return json.loads(config_path.read_text())
+    return {"error": "No skills config found"}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket for real-time log streaming."""
+    await websocket.accept()
+    connected_clients.append(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Handle incoming WebSocket messages if needed
+    except WebSocketDisconnect:
+        connected_clients.remove(websocket)
+
+
+async def broadcast_log(message: str):
+    """Broadcast a log message to all connected WebSocket clients."""
+    for client in connected_clients:
+        try:
+            await client.send_text(json.dumps({"type": "log", "message": message}))
+        except Exception:
+            pass
+
+
+def run_server(host: str = "0.0.0.0", port: int = 8000):
+    """Run the web UI server."""
+    if not HAS_SERVER_DEPS:
+        print("Error: FastAPI and uvicorn are required. Install with:")
+        print("  pip install fastapi uvicorn")
+        sys.exit(1)
+
+    print(f"🐸 Ribit Web UI starting at http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port)
+
+
+if __name__ == "__main__":
+    run_server()
