@@ -1,0 +1,98 @@
+"""
+Web Scraping Skill
+Used for scraping information from the web.
+"""
+
+import logging
+from typing import Optional
+
+from framework.api_management import api_manager
+
+logger = logging.getLogger(__name__)
+
+try:
+    import httpx
+    from bs4 import BeautifulSoup
+
+    HAS_DEPS = True
+except ImportError:
+    HAS_DEPS = False
+    logger.warning("httpx or beautifulsoup4 not installed")
+
+
+class WebScrapingSkill:
+    """Skill for fetching and parsing web content."""
+
+    def __init__(self):
+        self.skill_name = "web_scraping"
+        self.required_api_keys = []
+        api_manager.register_required_keys(self.skill_name, self.required_api_keys)
+        self.headers = {
+            "User-Agent": "Ribit/1.0 (Digital Being Framework)"
+        }
+
+    async def initialize(self) -> bool:
+        """Initialize the web scraping skill."""
+        if not HAS_DEPS:
+            logger.error("Required packages not installed (httpx, beautifulsoup4)")
+            return False
+        logger.info("Web scraping skill initialized")
+        return True
+
+    async def fetch_url(self, url: str) -> Optional[str]:
+        """Fetch raw HTML from a URL."""
+        if not HAS_DEPS:
+            return None
+
+        try:
+            async with httpx.AsyncClient(headers=self.headers, timeout=30) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                return response.text
+
+        except Exception as e:
+            logger.error(f"Fetch error for {url}: {e}")
+            return None
+
+    async def extract_text(self, url: str) -> Optional[str]:
+        """Fetch a URL and extract readable text."""
+        html = await self.fetch_url(url)
+        if not html:
+            return None
+
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+
+            # Remove scripts and styles
+            for tag in soup(["script", "style", "nav", "footer", "header"]):
+                tag.decompose()
+
+            text = soup.get_text(separator="\n", strip=True)
+            return text
+
+        except Exception as e:
+            logger.error(f"Text extraction error: {e}")
+            return None
+
+    async def extract_links(self, url: str) -> list[dict]:
+        """Extract all links from a page."""
+        html = await self.fetch_url(url)
+        if not html:
+            return []
+
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            links = []
+            for a in soup.find_all("a", href=True):
+                links.append({
+                    "text": a.get_text(strip=True),
+                    "href": a["href"],
+                })
+            return links
+
+        except Exception as e:
+            logger.error(f"Link extraction error: {e}")
+            return []
+
+
+web_scraping_skill = WebScrapingSkill()
