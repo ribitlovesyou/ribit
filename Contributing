@@ -1,0 +1,62 @@
+# Contributing to Ribit 🐸
+
+Thank you for your interest in contributing to the Ribit Framework! Your contributions help make this project better for everyone.
+
+## Contributor License Agreement
+
+By submitting a pull request, you affirm that you have the right to license your contributions under the MIT License and agree to the following:
+
+- **Ownership:** You retain ownership of any intellectual property rights you hold in your contributions.
+- **License Grant:** You grant Ribit and its users a perpetual, worldwide, non-exclusive, royalty-free license to use, modify, and distribute your contributions under the terms of the MIT License.
+- **No Restrictions:** Your contributions do not infringe upon any third-party rights and are free from any restrictions that would prevent them from being licensed under the MIT License.
+
+## How to Contribute
+
+### Getting Started
+
+1. **Fork the Repository:** Create your own fork of the Ribit repository.
+2. **Create a Branch:** Use a descriptive name, e.g., `feature/add-authentication`.
+3. **Make Your Changes:** Follow the existing code style and project goals.
+4. **Write Tests:** Include tests to maintain code quality.
+5. **Run Tests:** Ensure all tests pass.
+6. **Submit the PR:** Provide a clear description and reference related issues.
+
+### Code Style
+
+- Follow the existing style of code.
+- Use `ruff` for linting and formatting.
+- Write clear and concise docs for new features or changes.
+- Use meaningful commit messages, preferably following [Conventional Commits](https://www.conventionalcommits.org/).
+
+## Creating New Skills & Activities
+
+### Skills
+To add a new skill, create a file in `my_digital_being/skills/` following the pattern of existing skills. Register required API keys with the `api_manager` and implement `initialize()` and your custom methods.
+
+### Activities
+To add a new activity, create a file in `my_digital_being/activities/` using the `@activity()` decorator. Set appropriate energy costs, cooldowns, and required skills.
+
+### Architecture Guidelines
+
+- **Prefer External APIs:** Integrate external APIs outside the core framework.
+- **Modularity:** Easily integrate or remove functionalities without affecting the core.
+- **Maintain Simplicity:** Keep the core framework lightweight by offloading extensions.
+
+## Issue & PR Labels
+
+- `bug` — Something isn't working
+- `feature` — New feature or request
+- `docs` — Documentation improvement
+- `good first issue` — Good for newcomers
+- `help wanted` — Extra attention needed
+- `WIP` — Work in progress
+
+## Code of Conduct
+
+We are committed to providing a welcoming and inclusive environment for all contributors. Be respectful, constructive, and collaborative.
+
+## Questions?
+
+Open an issue or reach out on [X @RibitLovesYou](https://x.com/RibitLovesYou).
+
+🐸 Happy coding!
