@@ -1,0 +1,43 @@
+{
+  "lite_llm": {
+    "enabled": true,
+    "required_api_keys": ["OPENAI_API_KEY"],
+    "api_key_mapping": {
+      "OPENAI_API_KEY": "OPENAI_API_KEY"
+    }
+  },
+  "chat": {
+    "enabled": true,
+    "required_api_keys": ["OPENAI_API_KEY"],
+    "api_key_mapping": {
+      "OPENAI_API_KEY": "OPENAI_API_KEY"
+    }
+  },
+  "x_api": {
+    "enabled": false,
+    "required_api_keys": [
+      "TWITTER_API_KEY",
+      "TWITTER_API_SECRET",
+      "TWITTER_ACCESS_TOKEN",
+      "TWITTER_ACCESS_SECRET"
+    ],
+    "api_key_mapping": {
+      "TWITTER_API_KEY": "TWITTER_API_KEY",
+      "TWITTER_API_SECRET": "TWITTER_API_SECRET",
+      "TWITTER_ACCESS_TOKEN": "TWITTER_ACCESS_TOKEN",
+      "TWITTER_ACCESS_SECRET": "TWITTER_ACCESS_SECRET"
+    }
+  },
+  "solana_agent": {
+    "enabled": false,
+    "required_api_keys": ["SOLANA_PRIVATE_KEY"],
+    "api_key_mapping": {
+      "SOLANA_PRIVATE_KEY": "SOLANA_PRIVATE_KEY"
+    }
+  },
+  "web_scraping": {
+    "enabled": true,
+    "required_api_keys": [],
+    "api_key_mapping": {}
+  }
+}
