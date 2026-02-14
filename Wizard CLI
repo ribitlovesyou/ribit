@@ -1,0 +1,164 @@
+"""
+Onboarding Wizard (CLI)
+Guides the user through setting up their Ribit digital being.
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def print_banner():
+    print("\n" + "=" * 60)
+    print("  🐸 Welcome to the Ribit Digital Being Setup Wizard!")
+    print("=" * 60 + "\n")
+
+
+def get_input(prompt: str, default: str = "") -> str:
+    """Get user input with optional default."""
+    if default:
+        result = input(f"{prompt} [{default}]: ").strip()
+        return result if result else default
+    return input(f"{prompt}: ").strip()
+
+
+def setup_character(config_dir: Path) -> dict:
+    """Set up the character configuration."""
+    print("\n--- 🐸 Character Setup ---\n")
+
+    name = get_input("Character name", "Ribit")
+    personality = get_input(
+        "Personality description",
+        "A cheerful frog with a big grin, tiny golden crown, and curly tail",
+    )
+    objectives_str = get_input(
+        "Objectives (comma-separated)",
+        "Engage with community, Create content, Learn and grow",
+    )
+    objectives = [o.strip() for o in objectives_str.split(",")]
+
+    config = {
+        "name": name,
+        "personality": personality,
+        "objectives": objectives,
+        "constraints": [
+            "Always remain family-friendly",
+            "No more than 5 tweets per hour",
+        ],
+        "wallet": "7B7futgoJf1MPDW4jYT9HBvVBjpTPQ3GkNCs5KkWdLEW",
+        "social": {"x": "https://x.com/RibitLovesYou"},
+    }
+
+    config_path = config_dir / "character_config.json"
+    config_path.write_text(json.dumps(config, indent=2))
+    print(f"✅ Character config saved to {config_path}")
+    return config
+
+
+def setup_llm(config_dir: Path) -> dict:
+    """Set up LLM configuration."""
+    print("\n--- 🧠 LLM Setup ---\n")
+    print("You need at least one LLM API key to run Ribit.\n")
+
+    api_key = get_input("OpenAI API Key (or press Enter to skip)")
+
+    if api_key:
+        # Save to .env
+        env_path = Path(".env")
+        env_content = ""
+        if env_path.exists():
+            env_content = env_path.read_text()
+
+        if "OPENAI_API_KEY" not in env_content:
+            with open(env_path, "a") as f:
+                f.write(f"\nOPENAI_API_KEY={api_key}\n")
+            print("✅ API key saved to .env")
+        return {"provider": "openai", "configured": True}
+
+    print("⚠️  No API key provided. You'll need one before starting the agent.")
+    return {"provider": None, "configured": False}
+
+
+def setup_skills(config_dir: Path) -> None:
+    """Set up skills configuration."""
+    print("\n--- 🔧 Skills Setup ---\n")
+
+    # Copy sample config as default
+    sample_path = Path("config_sample/skills_config.json")
+    config_path = config_dir / "skills_config.json"
+
+    if sample_path.exists() and not config_path.exists():
+        config_path.write_text(sample_path.read_text())
+        print("✅ Default skills config loaded")
+
+    # Ask about optional skills
+    print("\nOptional integrations:")
+    print("  1. Twitter/X API")
+    print("  2. Solana Blockchain")
+    print("  3. Composio (OAuth gateway)")
+    print()
+
+    choices = get_input("Enable any? (comma-separated numbers, or Enter to skip)")
+    if choices:
+        config = json.loads(config_path.read_text())
+        for c in choices.split(","):
+            c = c.strip()
+            if c == "1":
+                config["x_api"]["enabled"] = True
+                print("  → Twitter/X API enabled (add keys to .env)")
+            elif c == "2":
+                config["solana_agent"]["enabled"] = True
+                print("  → Solana enabled (add SOLANA_PRIVATE_KEY to .env)")
+            elif c == "3":
+                print("  → Composio: Add COMPOSIO_API_KEY to .env")
+
+        config_path.write_text(json.dumps(config, indent=2))
+        print("✅ Skills config updated")
+
+
+def setup_constraints(config_dir: Path) -> None:
+    """Set up activity constraints."""
+    sample_path = Path("config_sample/activity_constraints.json")
+    config_path = config_dir / "activity_constraints.json"
+
+    if sample_path.exists() and not config_path.exists():
+        config_path.write_text(sample_path.read_text())
+        print("✅ Default activity constraints loaded")
+
+
+def run_onboarding():
+    """Run the full onboarding wizard."""
+    print_banner()
+
+    config_dir = Path("config")
+    config_dir.mkdir(exist_ok=True)
+
+    # Step 1: Character
+    setup_character(config_dir)
+
+    # Step 2: LLM
+    llm_info = setup_llm(config_dir)
+
+    # Step 3: Skills
+    setup_skills(config_dir)
+
+    # Step 4: Constraints
+    setup_constraints(config_dir)
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("  🐸 Setup Complete!")
+    print("=" * 60)
+    print(f"\n  LLM configured: {'✅' if llm_info['configured'] else '❌'}")
+    print(f"  Config dir: {config_dir.absolute()}")
+    print("\n  To start Ribit:")
+    print("    python -m framework.main")
+    print("\n  Or use the Web UI:")
+    print("    python -m server")
+    print(f"\n  🐸 Ribit is ready to hop! Follow @RibitLovesYou on X")
+    print()
+
+
+if __name__ == "__main__":
+    run_onboarding()
