@@ -1,0 +1,101 @@
+"""
+X (Twitter) API Skill
+Handles posting tweets, reading timelines, and interacting with X.
+"""
+
+import logging
+from typing import Optional
+
+from framework.api_management import api_manager
+
+logger = logging.getLogger(__name__)
+
+try:
+    import tweepy
+
+    HAS_TWEEPY = True
+except ImportError:
+    HAS_TWEEPY = False
+    logger.warning("tweepy not installed")
+
+
+class XAPISkill:
+    """Skill for interacting with the X (Twitter) API."""
+
+    def __init__(self):
+        self.skill_name = "x_api"
+        self.required_api_keys = [
+            "TWITTER_API_KEY",
+            "TWITTER_API_SECRET",
+            "TWITTER_ACCESS_TOKEN",
+            "TWITTER_ACCESS_SECRET",
+        ]
+        api_manager.register_required_keys(self.skill_name, self.required_api_keys)
+        self.client = None
+
+    async def initialize(self) -> bool:
+        """Initialize the Twitter API client."""
+        if not HAS_TWEEPY:
+            logger.error("tweepy package not installed")
+            return False
+
+        try:
+            api_key = await api_manager.get_api_key(self.skill_name, "TWITTER_API_KEY")
+            api_secret = await api_manager.get_api_key(self.skill_name, "TWITTER_API_SECRET")
+            access_token = await api_manager.get_api_key(self.skill_name, "TWITTER_ACCESS_TOKEN")
+            access_secret = await api_manager.get_api_key(self.skill_name, "TWITTER_ACCESS_SECRET")
+
+            if not all([api_key, api_secret, access_token, access_secret]):
+                logger.error("Missing Twitter API credentials")
+                return False
+
+            self.client = tweepy.Client(
+                consumer_key=api_key,
+                consumer_secret=api_secret,
+                access_token=access_token,
+                access_token_secret=access_secret,
+            )
+
+            logger.info("X API skill initialized — @RibitLovesYou ready to post!")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error initializing X API skill: {e}")
+            return False
+
+    async def post_tweet(self, text: str) -> dict:
+        """Post a tweet."""
+        if not self.client:
+            if not await self.initialize():
+                return {"success": False, "error": "X API not initialized"}
+
+        try:
+            if len(text) > 280:
+                text = text[:277] + "..."
+
+            response = self.client.create_tweet(text=text)
+            tweet_id = response.data["id"]
+            logger.info(f"Tweet posted: {tweet_id}")
+            return {"success": True, "tweet_id": tweet_id}
+
+        except Exception as e:
+            logger.error(f"Tweet posting error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_mentions(self, count: int = 10) -> dict:
+        """Get recent mentions."""
+        if not self.client:
+            return {"success": False, "error": "X API not initialized"}
+
+        try:
+            me = self.client.get_me()
+            mentions = self.client.get_users_mentions(me.data.id, max_results=count)
+            tweets = [{"id": t.id, "text": t.text} for t in (mentions.data or [])]
+            return {"success": True, "mentions": tweets}
+
+        except Exception as e:
+            logger.error(f"Get mentions error: {e}")
+            return {"success": False, "error": str(e)}
+
+
+x_api_skill = XAPISkill()
